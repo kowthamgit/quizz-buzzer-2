@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Quiz Buzzer Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .screen {
+            display: none;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1, h2 {
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            backdrop-filter: blur(5px);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-team-a {
+            background: linear-gradient(45deg, #4834d4, #686de0);
+        }
+
+        .btn-team-b {
+            background: linear-gradient(45deg, #eb4d4b, #c0392b);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #30336b, #130f40);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .buzzer-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        .buzzer-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+
+        .buzzer-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .team-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .team-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 10px;
+            min-width: 200px;
+        }
+
+        .status-panel {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .winner-display {
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .member-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .success-message {
+            color: #2ecc71;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .host-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .game-id-display {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.4rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .connected {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .connecting {
+            background: #f39c12;
+            color: white;
+        }
+
+        .setup-instructions {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .setup-instructions ol {
+            margin-left: 20px;
+        }
+
+        .setup-instructions li {
+            margin-bottom: 5px;
+        }
+
+        .setup-instructions a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        .setup-instructions code {
+            background: rgba(0,0,0,0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 1rem;
+            }
+            
+            .buzzer-btn {
+                width: 150px;
+                height: 150px;
+                font-size: 18px;
+            }
+            
+            .team-info {
+                flex-direction: column;
+            }
+
+            .game-id-display {
+                font-size: 1.2rem;
+                letter-spacing: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status connecting" id="connectionStatus">Connecting...</div>
+
+    <div class="container">
+        <!-- Setup Screen -->
+        <div class="screen active" id="setupScreen">
+            <h1>🎯 Multiplayer Quiz Buzzer</h1>
+            <h2>Game Setup</h2>
+            
+            <div class="input-group">
+                <input type="text" id="gameIdInput" placeholder="Enter Game ID (leave blank for new game)" maxlength="6" style="text-transform: uppercase;">
+            </div>
+            
+            <button class="btn" onclick="createOrJoinGame()">🚀 Start Game</button>
+            
+            <div class="status-panel">
+                <p><strong>🎮 How to Play:</strong></p>
+                <p>• Host creates a game and shares the Game ID</p>
+                <p>• Players join using the same Game ID</p>
+                <p>• Choose teams (up to 30 players each)</p>
+                <p>• Host enables buzzer, first press wins!</p>
+            </div>
+            
+            <div class="error-message" id="setupError"></div>
+            <div class="success-message" id="setupSuccess"></div>
+        </div>
+
+        <!-- Role Selection -->
+        <div class="screen" id="roleSelection">
+            <h1>🎯 Quiz Buzzer Game</h1>
+            <div class="game-id-display">Game ID: <span id="displayGameId"></span></div>
+            <h2>Select Your Role</h2>
+            <button class="btn" onclick="showHostLogin()">🎓 I'm the Host</button>
+            <button class="btn btn-secondary" onclick="showTeamSelection()">🎮 I'm a Player</button>
+            <button class="btn btn-secondary" onclick="backToSetup()">← Back</button>
+        </div>
+
+        <!-- Host Login -->
+        <div class="screen" id="loginScreen">
+            <h1>🎯 Host Login</h1>
+            <div class="game-id-display">Game ID: <span id="hostGameId"></span></div>
+            <div class="input-group">
+                <input type="text" id="hostUsername" placeholder="Username" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="hostPassword" placeholder="Password" required>
+            </div>
+            <button class="btn" onclick="hostLogin()">🔑 Login as Host</button>
+            <button class="btn btn-secondary" onclick="showRoleSelection()">← Back</button>
+            
+            <div class="status-panel">
+                <p><strong>Default Credentials:</strong></p>
+                <p>Username: <code>host</code></p>
+                <p>Password: <code>quiz123</code></p>
+            </div>
+            
+            <div class="error-message" id="loginError"></div>
+        </div>
+
+        <!-- Team Selection -->
+        <div class="screen" id="teamSelection">
+            <h1>🎮 Join the Game</h1>
+            <div class="game-id-display">Game ID: <span id="teamGameId"></span></div>
+            <div class="input-group">
+                <input type="text" id="playerName" placeholder="Enter your name" required maxlength="20">
+            </div>
+            <h2>Choose Your Team</h2>
+            <button class="btn btn-team-a" onclick="joinTeam('A')">🔵 Team A (<span id="previewTeamACount">0</span>/30)</button>
+            <button class="btn btn-team-b" onclick="joinTeam('B')">🔴 Team B (<span id="previewTeamBCount">0</span>/30)</button>
+            <button class="btn btn-secondary" onclick="showRoleSelection()">← Back</button>
+            <div class="error-message" id="teamError"></div>
+        </div>
+
+        <!-- Host Dashboard -->
+        <div class="screen" id="hostDashboard">
+            <h1>🎯 Host Dashboard</h1>
+            <div class="game-id-display">Game ID: <span id="dashboardGameId"></span></div>
+            
+            <div class="status-panel">
+                <h3>Game Status: <span id="gameStatus">Ready to Start</span></h3>
+                <div id="winnerDisplay" class="winner-display" style="display: none;"></div>
+            </div>
+
+            <div class="host-controls">
+                <button class="btn" id="enableBuzzer" onclick="enableBuzzer()">🟢 Enable Buzzer</button>
+                <button class="btn btn-secondary" id="disableBuzzer" onclick="disableBuzzer()" disabled>🔴 Disable Buzzer</button>
+                <button class="btn" onclick="resetRound()">🔄 Reset Round</button>
+                <button class="btn" onclick="clearAllPlayers()">🗑️ Clear All Players</button>
+            </div>
+
+            <div class="team-info">
+                <div class="team-card">
+                    <h3 style="color: #4834d4;">🔵 Team A</h3>
+                    <p><strong>Members: <span id="teamACount">0</span></strong></p>
+                    <div class="member-list" id="teamAMembers">No players yet</div>
+                </div>
+                <div class="team-card">
+                    <h3 style="color: #eb4d4b;">🔴 Team B</h3>
+                    <p><strong>Members: <span id="teamBCount">0</span></strong></p>
+                    <div class="member-list" id="teamBMembers">No players yet</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="endGame()">🚪 End Game</button>
+        </div>
+
+        <!-- Player Interface -->
+        <div class="screen" id="playerInterface">
+            <h1>🎮 Quiz Buzzer</h1>
+            <div class="game-id-display">Game ID: <span id="playerGameId"></span></div>
+            <h2>Welcome, <span id="playerDisplayName"></span>!</h2>
+            <h3><span id="playerTeamDisplay">Team</span></h3>
+            
+            <div class="status-panel">
+                <p id="buzzerStatus">Waiting for host to enable buzzer...</p>
+            </div>
+
+            <button class="buzzer-btn btn" id="buzzerButton" onclick="pressBuzzer()" disabled>
+                🔔<br>BUZZ!
+            </button>
+
+            <div class="team-info">
+                <div class="team-card">
+                    <h4 style="color: #4834d4;">🔵 Team A: <span id="playerTeamACount">0</span> players</h4>
+                </div>
+                <div class="team-card">
+                    <h4 style="color: #eb4d4b;">🔴 Team B: <span id="playerTeamBCount">0</span> players</h4>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="leaveGame()">🚪 Leave Game</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        try {
+            // Import Firebase modules
+            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+            const { getDatabase, ref, set, update, onValue, off, remove, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
+
+            // 🔧 REPLACE THIS WITH YOUR FIREBASE CONFIG
+            const firebaseConfig = {
+                // TODO: Replace with your actual Firebase config
+                apiKey: "AIzaSyDYaXi_IN6eh6h7BhI9-zEoAuoF7BW_rms",
+                authDomain: "quiz-buzzer-2-683b0.firebaseapp.com",
+                databaseURL: "https://quiz-buzzer-2-683b0-default-rtdb.firebaseio.com/",
+                projectId: "quiz-buzzer-2-683b0",
+                storageBucket: "quiz-buzzer-2-683b0.firebasestorage.app",
+                messagingSenderId: "932554498431",
+                appId: "1:932554498431:web:bfbb32b7d47c9da7077a4a"
+            };
+
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+            
+            // Make Firebase available globally
+            window.database = database;
+            window.firebaseRefs = { ref, set, update, onValue, off, remove, serverTimestamp };
+            window.firebaseReady = true;
+            
+            console.log('✅ Firebase connected successfully');
+            window.initGame();
+            
+        } catch (error) {
+            console.error('❌ Firebase initialization failed:', error);
+            window.firebaseReady = false;
+            window.initGame();
+        }
+    </script>
+
+    <script>
+        // Game State
+        let gameState = {
+            gameId: '',
+            isHost: false,
+            playerName: '',
+            playerTeam: '',
+            playerId: '',
+            buzzerEnabled: false,
+            buzzerPressed: false,
+            winner: null,
+            teams: { A: {}, B: {} },
+            connected: false
+        };
+
+        // Host credentials
+        const HOST_CREDENTIALS = {
+            username: 'host',
+            password: 'quiz123'
+        };
+
+        let gameRef = null;
+
+        // Initialize game
+        function initGame() {
+            updateConnectionStatus();
+            if (!window.firebaseReady) {
+                showFirebaseSetupError();
+            }
+            showScreen('setupScreen');
+        }
+
+        window.initGame = initGame;
+
+        // Show Firebase setup instructions
+        function showFirebaseSetupError() {
+            document.getElementById('setupError').innerHTML = `
+                <strong>⚠️ Firebase Setup Required</strong><br>
+                To enable multiplayer, you need to set up Firebase:<br><br>
+                <div class="setup-instructions">
+                    <strong>Quick Setup:</strong>
+                    <ol>
+                        <li>Go to <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
+                        <li>Create a new project</li>
+                        <li>Enable "Realtime Database" in test mode</li>
+                        <li>Get your config from Project Settings → Web App</li>
+                        <li>Replace the firebaseConfig in this HTML file</li>
+                    </ol>
+                </div>
+            `;
+        }
+
+        // Utility functions
+        function generateGameId() {
+            return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function generatePlayerId() {
+            return 'player_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function updateConnectionStatus() {
+            const statusDiv = document.getElementById('connectionStatus');
+            
+            if (window.firebaseReady && gameState.connected) {
+                statusDiv.textContent = '🟢 Connected';
+                statusDiv.className = 'connection-status connected';
+            } else if (window.firebaseReady) {
+                statusDiv.textContent = '🟡 Connecting';
+                statusDiv.className = 'connection-status connecting';
+            } else {
+                statusDiv.textContent = '🔴 No Database';
+                statusDiv.className = 'connection-status disconnected';
+            }
+        }
+
+        // Game management
+        function createOrJoinGame() {
+            if (!window.firebaseReady) {
+                showFirebaseSetupError();
+                return;
+            }
+
+            const gameIdInput = document.getElementById('gameIdInput').value.trim().toUpperCase();
+            const errorDiv = document.getElementById('setupError');
+            
+            if (gameIdInput && gameIdInput.length !== 6) {
+                errorDiv.textContent = 'Game ID must be exactly 6 characters';
+                return;
+            }
+
+            const gameId = gameIdInput || generateGameId();
+            gameState.gameId = gameId;
+            gameRef = window.firebaseRefs.ref(window.database, `games/${gameId}`);
+            
+            if (!gameIdInput) {
+                // Creating new game
+                const initialData = {
+                    createdAt: window.firebaseRefs.serverTimestamp(),
+                    buzzerEnabled: false,
+                    buzzerPressed: false,
+                    winner: null,
+                    teams: { A: {}, B: {} }
+                };
+
+                window.firebaseRefs.set(gameRef, initialData)
+                    .then(() => {
+                        setupGameListeners();
+                        showRoleSelection();
+                        errorDiv.textContent = '';
+                        document.getElementById('setupSuccess').textContent = `✅ Game created! ID: ${gameId}`;
+                    })
+                    .catch((error) => {
+                        errorDiv.textContent = '❌ Failed to create game. Check your Firebase setup.';
+                        console.error('Error creating game:', error);
+                    });
+            } else {
+                // Joining existing game
+                window.firebaseRefs.onValue(gameRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        setupGameListeners();
+                        showRoleSelection();
+                        errorDiv.textContent = '';
+                    } else {
+                        errorDiv.textContent = '❌ Game not found. Please check the Game ID.';
+                    }
+                }, { onlyOnce: true });
+            }
+        }
+
+        function setupGameListeners() {
+            window.firebaseRefs.onValue(gameRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    updateGameState(data);
+                    gameState.connected = true;
+                    updateConnectionStatus();
+                } else if (gameState.connected) {
+                    alert('🚪 Game has ended.');
+                    backToSetup();
+                }
+            });
+        }
+
+        function updateGameState(data) {
+            gameState.buzzerEnabled = data.buzzerEnabled || false;
+            gameState.buzzerPressed = data.buzzerPressed || false;
+            gameState.winner = data.winner || null;
+            gameState.teams = data.teams || { A: {}, B: {} };
+            updateDisplay();
+        }
+
+        // Navigation
+        function showRoleSelection() {
+            document.getElementById('displayGameId').textContent = gameState.gameId;
+            showScreen('roleSelection');
+            updateTeamPreview();
+        }
+
+        function showHostLogin() {
+            document.getElementById('hostGameId').textContent = gameState.gameId;
+            showScreen('loginScreen');
+        }
+
+        function showTeamSelection() {
+            document.getElementById('teamGameId').textContent = gameState.gameId;
+            showScreen('teamSelection');
+            updateTeamPreview();
+        }
+
+        function backToSetup() {
+            if (gameRef) {
+                window.firebaseRefs.off(gameRef);
+            }
+            gameState = {
+                gameId: '',
+                isHost: false,
+                playerName: '',
+                playerTeam: '',
+                playerId: '',
+                buzzerEnabled: false,
+                buzzerPressed: false,
+                winner: null,
+                teams: { A: {}, B: {} },
+                connected: false
+            };
+            document.getElementById('gameIdInput').value = '';
+            document.getElementById('setupError').textContent = '';
+            document.getElementById('setupSuccess').textContent = '';
+            updateConnectionStatus();
+            showScreen('setupScreen');
+        }
+
+        // Host functions
+        function hostLogin() {
+            const username = document.getElementById('hostUsername').value;
+            const password = document.getElementById('hostPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (username === HOST_CREDENTIALS.username && password === HOST_CREDENTIALS.password) {
+                gameState.isHost = true;
+                document.getElementById('dashboardGameId').textContent = gameState.gameId;
+                showScreen('hostDashboard');
+                updateDisplay();
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = '❌ Invalid credentials. Use: host / quiz123';
+            }
+        }
+
+        function enableBuzzer() {
+            const updates = {
+                buzzerEnabled: true,
+                buzzerPressed: false,
+                winner: null
+            };
+
+            // Reset all players' hasPressed status
+            Object.keys(gameState.teams.A).forEach(playerId => {
+                updates[`teams/A/${playerId}/hasPressed`] = false;
+            });
+            Object.keys(gameState.teams.B).forEach(playerId => {
+                updates[`teams/B/${playerId}/hasPressed`] = false;
+            });
+
+            window.firebaseRefs.update(gameRef, updates);
+        }
+
+        function disableBuzzer() {
+            window.firebaseRefs.update(gameRef, { buzzerEnabled: false });
+        }
+
+        function resetRound() {
+            const updates = {
+                buzzerEnabled: false,
+                buzzerPressed: false,
+                winner: null
+            };
+
+            // Reset all players' hasPressed status
+            Object.keys(gameState.teams.A).forEach(playerId => {
+                updates[`teams/A/${playerId}/hasPressed`] = false;
+            });
+            Object.keys(gameState.teams.B).forEach(playerId => {
+                updates[`teams/B/${playerId}/hasPressed`] = false;
+            });
+
+            window.firebaseRefs.update(gameRef, updates);
+        }
+
+        function clearAllPlayers() {
+            if (confirm('Are you sure you want to remove all players?')) {
+                window.firebaseRefs.update(gameRef, {
+                    teams: { A: {}, B: {} },
+                    buzzerEnabled: false,
+                    buzzerPressed: false,
+                    winner: null
+                });
+            }
+        }
+
+        function endGame() {
+            if (confirm('Are you sure you want to end the game? This will remove all data.')) {
+                window.firebaseRefs.remove(gameRef);
+                backToSetup();
+            }
+        }
+
+        // Player functions
+        function joinTeam(team) {
+            const playerName = document.getElementById('playerName').value.trim();
+            const errorDiv = document.getElementById('teamError');
+
+            if (!playerName) {
+                errorDiv.textContent = 'Please enter your name';
+                return;
+            }
+
+            const teamPlayers = gameState.teams[team] || {};
+            if (Object.keys(teamPlayers).length >= 30) {
+                errorDiv.textContent = `Team ${team} is full (30/30)`;
+                return;
+            }
+
+            // Check if name already exists
+            const allPlayers = { ...gameState.teams.A, ...gameState.teams.B };
+            const nameExists = Object.values(allPlayers).some(player => player.name === playerName);
+            if (nameExists) {
+                errorDiv.textContent = 'Name already taken. Please choose another.';
+                return;
+            }
+
+            gameState.playerName = playerName;
+            gameState.playerTeam = team;
+            gameState.playerId = generatePlayerId();
+
+            const playerData = {
+                name: playerName,
+                hasPressed: false,
+                joinedAt: window.firebaseRefs.serverTimestamp()
+            };
+
+            const playerRef = window.firebaseRefs.ref(window.database, `games/${gameState.gameId}/teams/${team}/${gameState.playerId}`);
+            window.firebaseRefs.set(playerRef, playerData)
+                .then(() => {
+                    document.getElementById('playerDisplayName').textContent = playerName;
+                    document.getElementById('playerTeamDisplay').textContent = `🔵 Team ${team}` || `🔴 Team ${team}`;
+                    document.getElementById('playerGameId').textContent = gameState.gameId;
+                    showScreen('playerInterface');
+                    updateDisplay();
+                })
+                .catch((error) => {
+                    errorDiv.textContent = 'Failed to join team. Please try again.';
+                    console.error('Error joining team:', error);
+                });
+        }
+
+        function pressBuzzer() {
+            if (!gameState.buzzerEnabled || gameState.buzzerPressed) return;
+
+            const timestamp = new Date().toISOString();
+            const winnerData = {
+                team: gameState.playerTeam,
+                player: gameState.playerName,
+                playerId: gameState.playerId,
+                timestamp: timestamp
+            };
+
+            const updates = {
+                buzzerPressed: true,
+                buzzerEnabled: false,
+                winner: winnerData,
+                [`teams/${gameState.playerTeam}/${gameState.playerId}/hasPressed`]: true
+            };
+
+            window.firebaseRefs.update(gameRef, updates);
+        }
+
+        function leaveGame() {
+            if (gameState.playerId && gameState.playerTeam) {
+                const playerRef = window.firebaseRefs.ref(window.database, `games/${gameState.gameId}/teams/${gameState.playerTeam}/${gameState.playerId}`);
+                window.firebaseRefs.remove(playerRef);
+            }
+            backToSetup();
+        }
+
+        // Display update functions
+        function updateTeamPreview() {
+            const teamACount = Object.keys(gameState.teams.A || {}).length;
+            const teamBCount = Object.keys(gameState.teams.B || {}).length;
+            
+            document.getElementById('previewTeamACount').textContent = teamACount;
+            document.getElementById('previewTeamBCount').textContent = teamBCount;
+        }
+
+        function updateDisplay() {
+            if (gameState.isHost) {
+                updateHostDashboard();
+            } else if (gameState.playerName) {
+                updatePlayerInterface();
+            }
+            updateTeamPreview();
+        }
+
+        function updateHostDashboard() {
+            const teamACount = Object.keys(gameState.teams.A || {}).length;
+            const teamBCount = Object.keys(gameState.teams.B || {}).length;
+            
+            document.getElementById('teamACount').textContent = teamACount;
+            document.getElementById('teamBCount').textContent = teamBCount;
+
+            // Update member lists
+            const teamAMembers = Object.values(gameState.teams.A || {});
+            const teamBMembers = Object.values(gameState.teams.B || {});
+            
+            document.getElementById('teamAMembers').innerHTML = teamAMembers.length > 0 
+                ? teamAMembers.map(player => `<div>${player.name}${player.hasPressed ? ' ✅' : ''}</div>`).join('')
+                : 'No players yet';
+                
+            document.getElementById('teamBMembers').innerHTML = teamBMembers.length > 0 
+                ? teamBMembers.map(player => `<div>${player.name}${player.hasPressed ? ' ✅' : ''}</div>`).join('')
+                : 'No players yet';
+
+            // Update controls
+            document.getElementById('enableBuzzer').disabled = gameState.buzzerEnabled;
+            document.getElementById('disableBuzzer').disabled = !gameState.buzzerEnabled;
+
+            // Update status
+            let status = 'Ready to Start';
+            if (gameState.winner) {
+                status = 'Round Complete';
+            } else if (gameState.buzzerEnabled) {
+                status = 'Buzzer Active - Waiting for buzz!';
+            } else if (gameState.buzzerPressed) {
+                status = 'Buzzer Disabled';
+            }
+            document.getElementById('gameStatus').textContent = status;
+
+            // Update winner display
+            const winnerDiv = document.getElementById('winnerDisplay');
+            if (gameState.winner) {
+                const timestamp = new Date(gameState.winner.timestamp).toLocaleTimeString();
+                const teamEmoji = gameState.winner.team === 'A' ? '🔵' : '🔴';
+                winnerDiv.innerHTML = `🏆 ${teamEmoji} Team ${gameState.winner.team} Wins!<br><strong>${gameState.winner.player}</strong> pressed first at ${timestamp}`;
+                winnerDiv.style.display = 'block';
+            } else {
+                winnerDiv.style.display = 'none';
+            }
+        }
+
+        function updatePlayerInterface() {
+            const buzzerButton = document.getElementById('buzzerButton');
+            const statusDiv = document.getElementById('buzzerStatus');
+            const currentPlayer = gameState.teams[gameState.playerTeam]?.[gameState.playerId];
+
+            // Update team counts
+            const teamACount = Object.keys(gameState.teams.A || {}).length;
+            const teamBCount = Object.keys(gameState.teams.B || {}).length;
+            document.getElementById('playerTeamACount').textContent = teamACount;
+            document.getElementById('playerTeamBCount').textContent = teamBCount;
+
+            // Update team display
+            const teamEmoji = gameState.playerTeam === 'A' ? '🔵' : '🔴';
+            document.getElementById('playerTeamDisplay').textContent = `${teamEmoji} Team ${gameState.playerTeam}`;
+
+            // Update buzzer state
+            if (gameState.winner) {
+                if (gameState.winner.playerId === gameState.playerId) {
+                    statusDiv.textContent = '🎉 YOU WON! You pressed first!';
+                    buzzerButton.style.background = 'linear-gradient(45deg, #2ecc71, #27ae60)';
+                    buzzerButton.innerHTML = '🏆<br>WINNER!';
+                } else {
+                    const timestamp = new Date(gameState.winner.timestamp).toLocaleTimeString();
+                    const winnerEmoji = gameState.winner.team === 'A' ? '🔵' : '🔴';
+                    statusDiv.textContent = `${winnerEmoji} ${gameState.winner.player} from Team ${gameState.winner.team} won at ${timestamp}`;
+                    buzzerButton.style.background = 'linear-gradient(45deg, #95a5a6, #7f8c8d)';
+                    buzzerButton.innerHTML = '🔔<br>BUZZ!';
+                }
+                buzzerButton.disabled = true;
+            } else if (currentPlayer && currentPlayer.hasPressed) {
+                statusDiv.textContent = 'You already pressed the buzzer this round!';
+                buzzerButton.disabled = true;
+                buzzerButton.style.background = 'linear-gradient(45deg, #95a5a6, #7f8c8d)';
+                buzzerButton.innerHTML = '⏳<br>PRESSED';
+            } else if (gameState.buzzerEnabled) {
+                statusDiv.textContent = '🚨 BUZZER ACTIVE! Press now!';
+                buzzerButton.disabled = false;
+                buzzerButton.style.background = gameState.playerTeam === 'A' ? 
+                    'linear-gradient(45deg, #4834d4, #686de0)' : 'linear-gradient(45deg, #eb4d4b, #c0392b)';
+                buzzerButton.innerHTML = '🔔<br>BUZZ!';
+            } else {
+                statusDiv.textContent = 'Waiting for host to enable buzzer...';
+                buzzerButton.disabled = true;
+                buzzerButton.style.background = 'linear-gradient(45deg, #95a5a6, #7f8c8d)';
+                buzzerButton.innerHTML = '🔔<br>BUZZ!';
+            }
+        }
+
+        // Make all functions globally available
+        window.createOrJoinGame = createOrJoinGame;
+        window.showRoleSelection = showRoleSelection;
+        window.showHostLogin = showHostLogin;
+        window.showTeamSelection = showTeamSelection;
+        window.backToSetup = backToSetup;
+        window.hostLogin = hostLogin;
+        window.enableBuzzer = enableBuzzer;
+        window.disableBuzzer = disableBuzzer;
+        window.resetRound = resetRound;
+        window.clearAllPlayers = clearAllPlayers;
+        window.endGame = endGame;
+        window.joinTeam = joinTeam;
+        window.pressBuzzer = pressBuzzer;
+        window.leaveGame = leaveGame;
+    </script>
+</body>
+</html>
